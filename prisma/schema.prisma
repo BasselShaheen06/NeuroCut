@@ -1,0 +1,115 @@
+generator client {
+  provider      = "prisma-client-js"
+  engineType    = "library"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  PLAYER
+  COACH
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  role           Role     @default(PLAYER)
+  createdAt      DateTime @default(now())
+
+  playerProfile  Player?  @relation("UserToPlayer")
+  coachedPlayers Player[] @relation("CoachToPlayer")
+}
+
+model Player {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation("UserToPlayer", fields: [userId], references: [id], onDelete: Cascade)
+
+  coachId     String
+  coach       User      @relation("CoachToPlayer", fields: [coachId], references: [id])
+
+  sport       String?
+  dob         DateTime?
+  heightCm    Float?
+  weightKg    Float?
+  injuryDate  DateTime?
+  surgeryDate DateTime?
+  dominantLeg String?
+  legLengthCm Float?
+  trialCount  Int       @default(10)
+
+  sessions    Session[]
+}
+
+model Session {
+  id            String    @id @default(cuid())
+  playerId      String
+  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  status        String    @default("pending") // pending | processing | completed | failed
+  conditionType String?                        // "ST" | "DT"
+
+  // DTC linking: the DT session stores the ID of its paired ST baseline session
+  linkedSessionId String?
+
+  imuFilePath   String?
+  createdAt     DateTime  @default(now())
+
+  aclRsiResult   AclRsiResult?
+  analysisResult AnalysisResult?
+  stimulusRuns   StimulusRun[]
+}
+
+model AclRsiResult {
+  id                 String  @id @default(cuid())
+  sessionId          String  @unique
+  session            Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  compositeScore     Float?
+  rawResponses       Json?
+  subscaleEmotions   Float?
+  subscaleConfidence Float?
+  subscaleRisk       Float?
+  readinessLevel     String?
+}
+
+model StimulusRun {
+  id             String  @id @default(cuid())
+  sessionId      String
+  session        Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  trialIndex     Int
+  direction      String  // L | R | STOP
+  cuedAt         Float?  // Unix timestamp ms
+  respondedAt    Float?  // Unix timestamp ms (filled by Python)
+  reactionTimeMs Float?  // respondedAt - cuedAt (filled by Python)
+}
+
+model AnalysisResult {
+  id                 String  @id @default(cuid())
+  sessionId          String  @unique
+  session            Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Reaction time stats
+  rtMean             Float?
+  rtCV               Float?
+  trialsProcessed    Int?
+
+  // DTC (written after both ST + DT sessions are processed and paired)
+  dtcScore           Float?
+
+  // ML outputs (future)
+  mlScore            Float?
+  compositeScore     Float?
+  recommendation     String?
+  featureImportances Json?
+
+  // Waveform for recharts chart — downsampled array of { t: ms, g: float }
+  waveformJson       Json?
+}

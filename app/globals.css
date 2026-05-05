@@ -2,26 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/* LIGHT MODE (Default) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg-base: #ffffff;
+  --color-bg-surface: #f4f4f5; /* zinc-100 */
+  --color-bg-elevated: #e4e4e7; /* zinc-200 */
+  --color-bg-border: #d4d4d8; /* zinc-300 */
+
+  --color-text-primary: #18181b; /* zinc-900 */
+  --color-text-secondary: #52525b; /* zinc-600 */
+  --color-text-disabled: #a1a1aa; /* zinc-400 */
+
+  /* Brand Colors stay vibrant */
+  --color-cyan-500: #06b6d4;
+  --color-green-500: #22c55e;
+  --color-red-500: #ef4444;
+  --color-amber-500: #f59e0b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* DARK MODE */
+.dark {
+  --color-bg-base: #0a0a0b;
+  --color-bg-surface: #141416;
+  --color-bg-elevated: #1c1c1f;
+  --color-bg-border: #27272a;
+
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-disabled: #52525b;
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--color-bg-base)] text-[var(--color-text-primary)] transition-colors duration-300;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom font utilities */
+.font-display {
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.font-body {
+  font-family: var(--font-roboto), system-ui, sans-serif;
 }
