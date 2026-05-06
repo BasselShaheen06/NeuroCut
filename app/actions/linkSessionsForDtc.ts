@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache"
  */
 export async function linkSessionsForDtc(formData: FormData) {
   const authSession = await auth()
-  if (!authSession || authSession.user.role !== "COACH") {
+  if (!authSession) {
     return { success: false, error: "Unauthorized" }
   }
 

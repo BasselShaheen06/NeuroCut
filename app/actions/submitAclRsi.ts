@@ -37,16 +37,27 @@ export async function submitAclRsi(
   conditionType: "ST" | "DT" = "ST"
 ) {
   const authSession = await auth()
-  if (!authSession || authSession.user.role !== "PLAYER") {
+  if (!authSession) {
     return { success: false as const, error: "Unauthorized" }
   }
 
-  // Look up the player profile
+  // Look up the player profile — if user is a coach, find the first player they coach
+  let playerId: string
   const player = await prisma.player.findUnique({
     where: { userId: authSession.user.id },
     select: { id: true },
   })
-  if (!player) return { success: false as const, error: "Player profile not found" }
+  if (player) {
+    playerId = player.id
+  } else {
+    // Coach flow: grab first player they coach
+    const coached = await prisma.player.findFirst({
+      where: { coachId: authSession.user.id },
+      select: { id: true },
+    })
+    if (!coached) return { success: false as const, error: "No player profile found" }
+    playerId = coached.id
+  }
 
   // Compute composite score (0-100)
   // ACL-RSI composite = mean of all 12 normalized items (each 0-100)
@@ -66,7 +77,7 @@ export async function submitAclRsi(
     // Create Session + AclRsiResult in one transaction
     const newSession = await prisma.session.create({
       data: {
-        playerId: player.id,
+        playerId: playerId,
         status: "pending",
         conditionType,
         aclRsiResult: {

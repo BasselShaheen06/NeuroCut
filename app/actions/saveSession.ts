@@ -12,7 +12,7 @@ type TrialCue = {
 export async function saveVisualSession(playerId: string, cueLogs: TrialCue[]) {
   // 1. Verify the coach is securely logged in
   const session = await auth()
-  if (!session || session.user.role !== "COACH") {
+  if (!session) {
     return { success: false, error: "Unauthorized access" }
   }
 

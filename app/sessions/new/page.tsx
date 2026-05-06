@@ -26,6 +26,25 @@ export default function ClinicalTriggerScreen() {
   const router = useRouter()
   const sessionId = searchParams.get("sessionId")
 
+  if (!sessionId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)]">
+        <div className="text-center space-y-3">
+          <h1 className="text-2xl font-bold text-[var(--color-red-500)]">Missing Session</h1>
+          <p className="text-[var(--color-text-secondary)]">
+            No session ID was provided. Please start from the questionnaire.
+          </p>
+          <button
+            onClick={() => router.push("/sessions/questionnaire")}
+            className="text-[var(--color-cyan-500)] underline"
+          >
+            Go to Questionnaire
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // State machine: setup -> ready -> delay -> cued -> inter -> finished
   const [testState, setTestState] = useState<
     "setup" | "ready" | "delay" | "cued" | "inter" | "finished"
@@ -99,9 +118,7 @@ export default function ClinicalTriggerScreen() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "Enter" || e.code === "KeyF") {
         e.preventDefault()
-        if (testState === "ready") {
-          startTrialSequence()
-        } else if (testState === "cued") {
+        if (testState === "cued") {
           handleResponse()
         }
       }
@@ -109,6 +126,13 @@ export default function ClinicalTriggerScreen() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [startTrialSequence, handleResponse, testState])
+
+  // ─── Auto-start each trial when ready ─────────────────────────────────────
+  useEffect(() => {
+    if (testState === "ready") {
+      startTrialSequence()
+    }
+  }, [startTrialSequence, testState])
 
   // ─── Auto-timeout: if player doesn't respond within 2s, record as missed ─
   useEffect(() => {
@@ -149,7 +173,7 @@ export default function ClinicalTriggerScreen() {
       <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-[var(--color-bg-base)]">
         <div className="max-w-2xl w-full bg-[var(--color-bg-surface)] p-8 rounded-xl border border-[var(--color-bg-border)] shadow-xl">
           <p className="text-xs uppercase tracking-widest text-[var(--color-text-disabled)] font-bold mb-2">
-            Step 3 of 4
+            Step 2 of 4
           </p>
           <h1 className="text-2xl font-display font-bold text-[var(--color-cyan-500)] mb-2">
             Reactive Y-Drill Protocol
@@ -176,7 +200,7 @@ export default function ClinicalTriggerScreen() {
             <div className="bg-[var(--color-bg-elevated)] p-4 rounded-lg border border-[var(--color-bg-border)]">
               <h3 className="font-bold text-[var(--color-cyan-500)] mb-2 text-sm uppercase">Instructions</h3>
               <ul className="text-sm space-y-2 text-[var(--color-text-secondary)] list-disc pl-4">
-                <li>Press <strong className="text-[var(--color-text-primary)]">Spacebar</strong> to start each trial.</li>
+                <li>Trials start automatically after you begin.</li>
                 <li>When the color appears, press <strong className="text-[var(--color-text-primary)]">Spacebar</strong> as fast as possible.</li>
                 <li>Your reaction time is measured with sub-millisecond precision.</li>
                 <li>If you don't respond within 2 seconds, the trial is marked as missed.</li>
@@ -312,19 +336,16 @@ export default function ClinicalTriggerScreen() {
     )
   }
 
-  // ─── UI: Ready (waiting for spacebar) ─────────────────────────────────────
+  // ─── UI: Ready (auto-starting) ────────────────────────────────────────────
   if (testState === "ready") {
     return (
-      <main
-        onClick={startTrialSequence}
-        className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)] cursor-pointer select-none"
-      >
+      <main className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)] select-none">
         <div className="text-center">
           <div className="text-[var(--color-text-disabled)] font-mono text-xl animate-pulse">
             <p>[ Trial {currentTrial + 1} of {TOTAL_TRIALS} ]</p>
           </div>
           <p className="mt-6 text-sm text-[var(--color-text-disabled)] opacity-50">
-            Press <span className="text-[var(--color-text-primary)] font-bold">Spacebar</span> or Click to Fire
+            Get ready — the cue will appear shortly
           </p>
           <div className="mt-8 flex justify-center gap-2">
             {Array.from({ length: TOTAL_TRIALS }).map((_, i) => (
@@ -345,18 +366,15 @@ export default function ClinicalTriggerScreen() {
     )
   }
 
-  // ─── UI: Cued (color flash — PRESS NOW!) ──────────────────────────────────
+  // ─── UI: Cued (color flash) ───────────────────────────────────────────────
   if (testState === "cued" && activeStimulus) {
     return (
-      <main
-        onClick={handleResponse}
-        className={`min-h-screen flex flex-col items-center justify-center ${activeStimulus.color} cursor-pointer select-none`}
-      >
+      <main className={`min-h-screen flex flex-col items-center justify-center ${activeStimulus.color} select-none`}>
         <div className="text-[var(--color-bg-base)] text-[15rem] font-bold leading-none">
           {activeStimulus.symbol}
         </div>
         <div className="mt-8 text-[var(--color-bg-base)]/70 text-lg font-bold uppercase tracking-widest animate-pulse">
-          PRESS NOW
+          React
         </div>
       </main>
     )

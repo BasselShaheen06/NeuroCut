@@ -6,28 +6,18 @@ export async function Navbar() {
   const session = await auth()
   if (!session) return null // Don't show navbar on login screen
 
-  const isCoach = session.user.role === "COACH"
-
   return (
     <nav className="w-full border-b border-[var(--color-bg-border)] bg-[var(--color-bg-surface)] px-6 py-4 flex justify-between items-center sticky top-0 z-50">
       <div className="flex items-center gap-8">
-        <h1 className="text-xl font-display font-bold text-[var(--color-cyan-500)]">
+        <Link href="/login" className="text-xl font-display font-bold text-[var(--color-cyan-500)] hover:opacity-80 transition-opacity">
           NeuroCut
-        </h1>
+        </Link>
         
-        {/* Dynamic Tabs based on Role */}
+        {/* Navigation Tabs — accessible to all users */}
         <div className="flex gap-4 text-sm font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
-          {isCoach ? (
-            <>
-              <Link href="/dashboard" className="hover:text-[var(--color-text-primary)] transition-colors">Active Roster</Link>
-              <span className="cursor-not-allowed opacity-50">Clinic Settings</span>
-            </>
-          ) : (
-            <>
-              <Link href="/player" className="hover:text-[var(--color-text-primary)] transition-colors">My Portal</Link>
-              <span className="cursor-not-allowed opacity-50">Assessment History</span>
-            </>
-          )}
+          <Link href="/dashboard" className="hover:text-[var(--color-text-primary)] transition-colors">Dashboard</Link>
+          <Link href="/player" className="hover:text-[var(--color-text-primary)] transition-colors">My Portal</Link>
+          <Link href="/player#history" className="hover:text-[var(--color-text-primary)] transition-colors">Assessment History</Link>
         </div>
       </div>
 

@@ -29,25 +29,13 @@ export async function saveStimulusRuns(
   }
 
   try {
-    // Verify the session exists and belongs to this user
+    // Verify the session exists
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { player: true },
     })
 
     if (!session) {
       return { success: false, error: "Session not found" }
-    }
-
-    // Verify ownership: player's userId must match the authenticated user
-    if (authSession.user.role === "PLAYER") {
-      const player = await prisma.player.findUnique({
-        where: { userId: authSession.user.id },
-        select: { id: true },
-      })
-      if (!player || player.id !== session.playerId) {
-        return { success: false, error: "Session does not belong to this player" }
-      }
     }
 
     // Create all stimulus runs in a transaction

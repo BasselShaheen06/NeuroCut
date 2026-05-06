@@ -5,6 +5,8 @@ import Link from "next/link"
 import { WaveformChart } from "@/components/WaveformChart"
 import { DtcPairingPanel } from "@/components/DtcPairingPanel"
 import FeatureImportanceChart from "@/components/FeatureImportanceChart"
+import { CompositeGauge } from "@/components/CompositeGauge"
+import { RTAnalysisChart } from "@/components/RTAnalysisChart"
 
 // ─── Types mirroring what Python writes to waveformJson ───────────────────────
 type WaveformPoint = { t: number; g: number }
@@ -67,6 +69,7 @@ export default async function SessionResultsPage({
   const mlScore = (session.analysisResult?.mlScore as number | null) ?? null
   const recommendation = (session.analysisResult?.recommendation as string | null) ?? null
   const featureImportances = (session.analysisResult?.featureImportances as Record<string, number> | null) ?? null
+  const compositeScore = (session.analysisResult?.compositeScore as number | null) ?? null
 
   // ─── For DTC pairing: find available ST sessions for same player ────────────
   let availableStSessions: { id: string; createdAt: Date; rtMean: number | null }[] = []
@@ -96,6 +99,44 @@ export default async function SessionResultsPage({
   const subscaleEmotions = session.aclRsiResult?.subscaleEmotions ?? null
   const subscaleConfidence = session.aclRsiResult?.subscaleConfidence ?? null
   const subscaleRisk = session.aclRsiResult?.subscaleRisk ?? null
+
+  // ─── Composite breakdown for gauge ──────────────────────────────────────────
+  const compositeBreakdown = []
+  if (aclScore !== null) {
+    compositeBreakdown.push({
+      label: "ACL-RSI (Psychological)",
+      score: aclScore,
+      weight: mlScore !== null && dtcScore !== null ? 0.30 : mlScore !== null ? 0.35 : dtcScore !== null ? 0.35 : 0.45,
+      color: aclScore >= 77 ? "var(--color-green-500)" : aclScore >= 56 ? "var(--color-amber-500)" : "var(--color-red-500)",
+    })
+  }
+  if (avgReactionTimeMs > 0) {
+    const rtScoreNorm = Math.max(0, Math.min(100, ((600 - avgReactionTimeMs) / 400) * 100))
+    compositeBreakdown.push({
+      label: "Reaction Time",
+      score: rtScoreNorm,
+      weight: mlScore !== null && dtcScore !== null ? 0.25 : mlScore !== null ? 0.30 : dtcScore !== null ? 0.30 : 0.55,
+      color: avgReactionTimeMs < 300 ? "var(--color-green-500)" : avgReactionTimeMs < 500 ? "var(--color-amber-500)" : "var(--color-red-500)",
+    })
+  }
+  if (dtcScore !== null) {
+    const dtcScoreNorm = Math.max(0, Math.min(100, ((30 - Math.abs(dtcScore)) / 30) * 100))
+    compositeBreakdown.push({
+      label: "Dual-Task Cost",
+      score: dtcScoreNorm,
+      weight: mlScore !== null ? 0.20 : 0.35,
+      color: dtcScore < 5 ? "var(--color-green-500)" : dtcScore < 15 ? "var(--color-amber-500)" : "var(--color-red-500)",
+    })
+  }
+  if (mlScore !== null) {
+    const mlScoreNorm = (1 - mlScore) * 100
+    compositeBreakdown.push({
+      label: "ML Gait Analysis",
+      score: mlScoreNorm,
+      weight: dtcScore !== null ? 0.25 : 0.35,
+      color: mlScore < 0.3 ? "var(--color-green-500)" : mlScore < 0.65 ? "var(--color-amber-500)" : "var(--color-red-500)",
+    })
+  }
 
   return (
     <main className="min-h-screen p-6 md:p-10 bg-[var(--color-bg-base)]">
@@ -136,6 +177,15 @@ export default async function SessionResultsPage({
           <div className="bg-[var(--color-amber-500)]/10 border border-[var(--color-amber-500)] text-[var(--color-amber-500)] p-4 rounded-xl text-center font-bold animate-pulse">
             Python engine is crunching the IMU data. Refresh in a few seconds.
           </div>
+        )}
+
+        {/* ── Composite Score Gauge ─────────────────────────────────────── */}
+        {compositeScore !== null && recommendation !== null && (
+          <CompositeGauge
+            score={compositeScore}
+            recommendation={recommendation}
+            breakdown={compositeBreakdown}
+          />
         )}
 
         {/* ── Metrics grid ───────────────────────────────────────────────── */}
@@ -230,6 +280,18 @@ export default async function SessionResultsPage({
             </div>
           </div>
         </div>
+
+        {/* ── RT Analysis Chart ──────────────────────────────────────────── */}
+        {validRuns.length > 0 && (
+          <RTAnalysisChart
+            trials={session.stimulusRuns.map((r) => ({
+              trialIndex: r.trialIndex,
+              direction: r.direction,
+              reactionTimeMs: r.reactionTimeMs,
+            }))}
+            meanRT={avgReactionTimeMs}
+          />
+        )}
 
         {/* ── ACL-RSI Subscales ────────────────────────────────────────────── */}
         {aclScore !== null && (

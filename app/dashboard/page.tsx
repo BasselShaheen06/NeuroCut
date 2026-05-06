@@ -6,14 +6,24 @@ import Link from "next/link"
 export default async function DashboardPage() {
   // 1. Secure the page and get the current user session
   const session = await auth()
-  
-  if (!session || session.user.role !== "COACH") {
+
+  if (!session) {
     redirect("/login")
+  }
+
+  let coachId = session.user.id
+  if (session.user.role === "PLAYER") {
+    const playerProfile = await prisma.player.findUnique({
+      where: { userId: session.user.id },
+      select: { coachId: true },
+    })
+    if (!playerProfile) redirect("/login")
+    coachId = playerProfile.coachId
   }
 
   // 2. Fetch all players assigned to this specific coach
   const players = await prisma.player.findMany({
-    where: { coachId: session.user.id },
+    where: { coachId },
     include: { 
       user: true,
       sessions: {
@@ -31,10 +41,10 @@ export default async function DashboardPage() {
         <header className="flex justify-between items-end border-b border-[var(--color-bg-border)] pb-4">
           <div>
             <h1 className="text-3xl font-bold font-display text-[var(--color-cyan-500)] tracking-wide">
-              Coach Dashboard
+              {session.user.role === "COACH" ? "Coach Dashboard" : "Team Dashboard"}
             </h1>
             <p className="text-[var(--color-text-secondary)] text-sm mt-1">
-              Welcome back, Dr. {session.user.email?.split('@')[0]}
+              Welcome back, {session.user.email?.split('@')[0]}
             </p>
           </div>
           <Link href="/api/auth/signout" className="text-sm font-bold text-[var(--color-text-disabled)] hover:text-[var(--color-red-500)] transition-colors uppercase tracking-wider">
@@ -106,7 +116,7 @@ export default async function DashboardPage() {
                 {/* Action Button */}
                 <div className="pt-4 mt-2 flex justify-end">
                   <Link 
-                    href={`/sessions/new?playerId=${player.id}`}
+                    href="/sessions/questionnaire"
                     className="text-xs font-bold text-[var(--color-bg-base)] bg-[var(--color-text-primary)] px-4 py-2 rounded-lg hover:bg-[var(--color-cyan-500)] transition-colors uppercase tracking-wider"
                   >
                     Start Protocol →

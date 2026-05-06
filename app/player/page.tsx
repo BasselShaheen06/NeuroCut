@@ -13,25 +13,39 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default async function PlayerHome() {
   const authSession = await auth()
-  if (!authSession || authSession.user.role !== "PLAYER") redirect("/login")
+  if (!authSession) redirect("/login")
 
-  const player = await prisma.player.findUnique({
-    where: { userId: authSession.user.id },
-    include: {
-      coach: true,
-      sessions: {
-        orderBy: { createdAt: "desc" },
-        include: { aclRsiResult: true, analysisResult: true },
-      },
-    },
-  })
+  const isCoach = authSession.user.role === "COACH"
+  const player = isCoach
+    ? await prisma.player.findFirst({
+        where: { coachId: authSession.user.id },
+        include: {
+          coach: true,
+          sessions: {
+            orderBy: { createdAt: "desc" },
+            include: { aclRsiResult: true, analysisResult: true },
+          },
+        },
+      })
+    : await prisma.player.findUnique({
+        where: { userId: authSession.user.id },
+        include: {
+          coach: true,
+          sessions: {
+            orderBy: { createdAt: "desc" },
+            include: { aclRsiResult: true, analysisResult: true },
+          },
+        },
+      })
 
   if (!player) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-base)]">
         <div className="text-center space-y-3">
           <h1 className="text-2xl font-bold text-[var(--color-red-500)]">Profile Not Found</h1>
-          <p className="text-[var(--color-text-secondary)]">Contact your coach or administrator.</p>
+          <p className="text-[var(--color-text-secondary)]">
+            {isCoach ? "No players are assigned yet." : "Contact your coach or administrator."}
+          </p>
           <Link href="/api/auth/signout" className="text-[var(--color-cyan-500)] underline block">
             Sign Out
           </Link>
@@ -78,7 +92,7 @@ export default async function PlayerHome() {
 
           {/* Start Assessment */}
           <Link
-            href={`/sessions/questionnaire`}
+            href={pendingSession ? `/sessions/preview?sessionId=${pendingSession.id}` : `/sessions/questionnaire`}
             className="group relative flex flex-col justify-between p-7 rounded-2xl border-2 border-[var(--color-cyan-500)]/40 bg-[var(--color-bg-surface)] hover:border-[var(--color-cyan-500)] hover:bg-[var(--color-cyan-500)]/5 transition-all shadow-sm"
           >
             <div>
@@ -86,14 +100,16 @@ export default async function PlayerHome() {
                 ▶
               </div>
               <h2 className="text-xl font-bold font-display text-[var(--color-text-primary)] mb-2">
-                Start Assessment
+                {pendingSession ? "Resume Assessment" : "Start Assessment"}
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                Begin a new session: ACL-RSI questionnaire → setup walkthrough → Y-Drill stimulus protocol.
+                {pendingSession
+                  ? "Continue where you left off in the assessment flow."
+                  : "Begin a new session: ACL-RSI questionnaire → setup walkthrough → Y-Drill stimulus protocol."}
               </p>
             </div>
             <div className="mt-6 flex items-center gap-2 text-[var(--color-cyan-500)] text-sm font-bold uppercase tracking-wider">
-              Begin
+              {pendingSession ? "Continue" : "Begin"}
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </div>
             {pendingSession && (

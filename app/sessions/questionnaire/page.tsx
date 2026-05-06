@@ -52,12 +52,17 @@ export default function AclRsiScreen() {
     setError(null)
 
     startTransition(async () => {
-      const result = await submitAclRsi(answers, conditionType)
-      if (!result.success) {
-        setError(result.error ?? "Submission failed")
-        return
+      try {
+        const result = await submitAclRsi(answers, conditionType)
+        if (!result.success) {
+          setError(result.error ?? "Submission failed")
+          return
+        }
+        router.push(`/sessions/preview?sessionId=${result.sessionId}`)
+      } catch (err) {
+        console.error("ACL-RSI submit failed:", err)
+        setError("Network error — please try again.")
       }
-      router.push(`/sessions/setup?sessionId=${result.sessionId}`)
     })
   }
 

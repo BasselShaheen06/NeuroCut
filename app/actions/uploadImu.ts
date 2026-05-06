@@ -5,9 +5,9 @@ import { auth } from "@/lib/auth"
 import { supabaseAdmin } from "@/lib/supabase"
 
 export async function uploadImuData(formData: FormData) {
-  // 1. Verify the coach is securely logged in
+  // 1. Verify the user is securely logged in
   const session = await auth()
-  if (!session || session.user.role !== "COACH") {
+  if (!session) {
     return { success: false, error: "Unauthorized access" }
   }
 
@@ -20,6 +20,7 @@ export async function uploadImuData(formData: FormData) {
   }
 
   try {
+
     // 3. Convert the file into a buffer so the server can transmit it
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)

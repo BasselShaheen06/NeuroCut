@@ -17,20 +17,14 @@ interface FeatureImportanceChartProps {
 
 // Human-readable labels for the model features
 const FEATURE_LABELS: Record<string, string> = {
-  stride_lengths: "Stride Length",
-  stride_times: "Stride Time",
-  intensity: "Gait Intensity",
-  swing_times: "Swing Time",
-  stance_times: "Stance Time",
-  stance_ratios: "Stance Ratio",
-  clearances_min: "Min Clearance",
-  clearances_max: "Max Clearance",
-  clearance_ratio: "Clearance Ratio",
-  stride_var: "Stride Variability",
-  length_var: "Length Variability",
-  swing_var: "Swing Variability",
-  stability_index: "Stability Index",
-  symmetry_proxy: "Symmetry Proxy",
+  rolling_cv_clearances_min: "Clearance CV (Min)",
+  rolling_std_clearances_min: "Clearance Std (Min)",
+  rolling_mean_SI_stance_ratios: "Stance Ratio SI (Mean)",
+  rolling_std_stride_lengths: "Stride Length Std",
+  rolling_std_stride_times: "Stride Time Std",
+  rolling_std_clearances_max: "Clearance Std (Max)",
+  rolling_std_swing_times: "Swing Time Std",
+  rolling_mean_SI_stride_lengths: "Stride Length SI (Mean)",
 }
 
 // Color gradient based on importance value
