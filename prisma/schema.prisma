@@ -64,6 +64,7 @@ model Session {
   aclRsiResult   AclRsiResult?
   analysisResult AnalysisResult?
   stimulusRuns   StimulusRun[]
+  gaitFeatures   GaitFeatures[]
 }
 
 model AclRsiResult {
@@ -112,4 +113,28 @@ model AnalysisResult {
 
   // Waveform for recharts chart — downsampled array of { t: ms, g: float }
   waveformJson       Json?
+}
+
+model GaitFeatures {
+  id              String  @id @default(cuid())
+  sessionId       String
+  session         Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  strideIndex     Int
+  timestamp       Float?
+  strideLength    Float?
+  clearanceMin    Float?
+  clearanceMax    Float?
+  strideTime      Float?
+  swingTime       Float?
+  stanceTime      Float?
+  stanceRatio     Float?
+  foTime          Float?
+  icTime          Float?
+  foSample        Int?
+  icSample        Int?
+  isOutlier       Boolean @default(false)
+  turningStep     Boolean @default(false)
+  turningInterval Boolean @default(false)
+  interrupted     Boolean @default(false)
 }

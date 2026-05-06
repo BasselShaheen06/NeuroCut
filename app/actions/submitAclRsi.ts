@@ -3,26 +3,27 @@
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 
-// Questions 2,3,6,7,9,10 are reverse-scored:
-// the "bad" end is 10, so raw score must be flipped: score = 10 - raw
-const REVERSED_QUESTIONS = new Set([2, 3, 6, 7, 9, 10])
+// Questions where the LEFT anchor is the negative end.
+// For these, the raw VAS value (0-100) must be reversed: score = 100 - raw
+// to ensure higher = better across all items.
+const REVERSED_QUESTIONS = new Set([2, 3, 5, 6, 9, 10])
 
 function computeSubscales(raw: Record<number, number>) {
   // ACL-RSI subscales (Webster & Feller, 2018):
-  //   Emotions    : Q3, Q6, Q7, Q9
-  //   Confidence  : Q1, Q4, Q5, Q8, Q11
+  //   Emotions    : Q3, Q5, Q6, Q9
+  //   Confidence  : Q1, Q4, Q7, Q8, Q11
   //   Risk        : Q2, Q10, Q12
   const normalize = (qId: number) => {
     const v = raw[qId] ?? 0
-    return REVERSED_QUESTIONS.has(qId) ? 10 - v : v
+    return REVERSED_QUESTIONS.has(qId) ? 100 - v : v
   }
 
-  const emotions   = [3, 6, 7, 9].map(normalize)
-  const confidence = [1, 4, 5, 8, 11].map(normalize)
+  const emotions   = [3, 5, 6, 9].map(normalize)
+  const confidence = [1, 4, 7, 8, 11].map(normalize)
   const risk       = [2, 10, 12].map(normalize)
 
   const avg = (arr: number[]) =>
-    (arr.reduce((a, b) => a + b, 0) / arr.length / 10) * 100
+    arr.reduce((a, b) => a + b, 0) / arr.length
 
   return {
     subscaleEmotions:   avg(emotions),
@@ -31,7 +32,10 @@ function computeSubscales(raw: Record<number, number>) {
   }
 }
 
-export async function submitAclRsi(rawAnswers: Record<number, number>) {
+export async function submitAclRsi(
+  rawAnswers: Record<number, number>,
+  conditionType: "ST" | "DT" = "ST"
+) {
   const authSession = await auth()
   if (!authSession || authSession.user.role !== "PLAYER") {
     return { success: false as const, error: "Unauthorized" }
@@ -44,12 +48,13 @@ export async function submitAclRsi(rawAnswers: Record<number, number>) {
   })
   if (!player) return { success: false as const, error: "Player profile not found" }
 
-  // Compute scores
+  // Compute composite score (0-100)
+  // ACL-RSI composite = mean of all 12 normalized items (each 0-100)
   const normalizedValues = Object.entries(rawAnswers).map(([qId, v]) =>
-    REVERSED_QUESTIONS.has(Number(qId)) ? 10 - v : v
+    REVERSED_QUESTIONS.has(Number(qId)) ? 100 - v : v
   )
   const compositeScore = parseFloat(
-    ((normalizedValues.reduce((a, b) => a + b, 0) / 120) * 100).toFixed(1)
+    (normalizedValues.reduce((a, b) => a + b, 0) / 12).toFixed(1)
   )
   const { subscaleEmotions, subscaleConfidence, subscaleRisk } =
     computeSubscales(rawAnswers)
@@ -63,6 +68,7 @@ export async function submitAclRsi(rawAnswers: Record<number, number>) {
       data: {
         playerId: player.id,
         status: "pending",
+        conditionType,
         aclRsiResult: {
           create: {
             compositeScore,

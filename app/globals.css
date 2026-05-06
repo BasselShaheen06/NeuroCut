@@ -46,3 +46,61 @@
 .font-body {
   font-family: var(--font-roboto), system-ui, sans-serif;
 }
+
+/* ─── VAS Slider for ACL-RSI ────────────────────────────────── */
+.vas-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  /* Gradient fill: colored up to thumb position, then neutral */
+  background: linear-gradient(
+    to right,
+    var(--slider-fill, var(--color-bg-border)) 0%,
+    var(--slider-fill, var(--color-bg-border)) var(--slider-pct, 50%),
+    var(--color-bg-elevated) var(--slider-pct, 50%),
+    var(--color-bg-elevated) 100%
+  );
+}
+
+/* Thumb — Webkit (Chrome, Safari, Edge) */
+.vas-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--slider-fill, var(--color-cyan-500));
+  border: 3px solid var(--color-bg-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: grab;
+  transition: transform 0.1s;
+}
+.vas-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+/* Thumb — Firefox */
+.vas-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--slider-fill, var(--color-cyan-500));
+  border: 3px solid var(--color-bg-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: grab;
+}
+.vas-slider::-moz-range-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+
+/* Track — Firefox */
+.vas-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: transparent;
+}
